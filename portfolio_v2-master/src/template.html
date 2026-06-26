@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  %sapper.base%
+
+  <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,500&display=swap" rel="stylesheet" />
+
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Sapper generates a <style> tag containing critical CSS
+	     for the current page. CSS for the rest of the app is
+	     lazily loaded when it precaches secondary pages -->
+  %sapper.styles%
+
+  <!-- This contains the contents of the <svelte:head> component, if
+	     the current page has one -->
+  %sapper.head%
+</head>
+
+<body>
+  <style>
+    .g-msg {
+      display: none;
+      position: relative;
+      width: 100%;
+      font-size: 18px;
+      text-align: center;
+      border: 2px dashed red;
+      padding: 8px;
+      background: #f8f3ef;
+      color: #343434;
+      z-index: 7;
+    }
+  </style>
+  <div id="isOld" class="g-msg"></div>
+
+  <script>
+    // Critical JS to be runned before Svelte is loaded.
+    // 
+    // [1] - Set the default theme. Remaining logic at ToggleTheme.svelte
+    // [2] - Set the default motion. Tablet is always reduced just in case. Remaining logic at ToggleMotion.svelte
+    // [3] - Set the default color contrast.
+    // [4] - Detect current browser. Needed for some CSS animations otimizations.
+    // DO NOT modify any DOM element inside #sapper! Otherwise Svelte hydratation won't work properly.
+    var isOld = !window.fetch || !window.matchMedia;
+    /*[1]*/
+    var theme = 'light';
+    var themeStored = window.localStorage.getItem('theme')
+
+    if (themeStored) {
+      theme = themeStored
+      if (themeStored === 'dark') setDarkTheme()
+    } else {
+      var themeOSIsDark = !isOld && window.matchMedia('(prefers-color-scheme: dark)').matches
+      if (themeOSIsDark) setDarkTheme()
+    }
+
+    function setDarkTheme() {
+      theme = 'dark';
+      document.body.classList.add('dark');
+    }
+
+    /*[2]*/
+    var motionClass =
+      isOld ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        window.matchMedia('(min-width: 48em) and (max-width: 64em)').matches
+        ? 'jsMotionReduced'
+        : 'jsMotionDefault';
+    document.body.classList.add(motionClass, 'jsMotionInitial');
+    /*[3] - contrast - Note July 2021: Not supported in any browser yet */
+    var contractClass = isOld || !window.matchMedia('(prefers-contrast: more)').matches
+      ? 'jsContrastDefault'
+      : 'jsContrastMore';
+    document.body.classList.add(contractClass);
+    // To be tracked later on mount to ensure splitbee is defined
+    var splitbee_track_default = theme + '_' + motionClass;
+    if (process.env.ENVIRONMENT === 'production') {
+      splitbee.track('settings_default', theme + '_' + motionClass);
+    }
+    /*[4]*/ (function currBrowser() {
+      var bs = {
+        jsChrome: /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor),
+        jsSafari: !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/),
+        jsIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+        jsFF: !!navigator.userAgent.match(/firefox/i),
+      };
+      var m = Object.keys(bs).reduce(function (cl, b) {
+        if (bs[b]) {
+          cl.push(b);
+        }
+        return cl;
+      }, []);
+
+      for (var i = 0, l = m.length; i < l; i++) {
+        document.body.classList.add(m[i]);
+      }
+    })();
+    if (isOld) {
+      var elIsOld = document.getElementById('isOld');
+      elIsOld.style.display = 'block';
+      elIsOld.style.position = 'fixed';
+      elIsOld.innerHTML =
+        'Wow, your browser seems ancient and this website might not work as expected.' +
+        '<br/>' +
+        'Fear not, you can still reach me by <a href="mailto:a.sandrina.p+w@gmail.com" class="u-link">e-mail</a>!';
+      if (process.env.ENVIRONMENT === 'production') {
+        splitbee.track('settings_browser_old!');
+      }
+    }
+  </script>
+
+  <!-- CSS NAKED DAY CODE -->
+  <div align="center" id="cssNakedMsg"></div>
+  <script>
+    function isApril9() {
+      var now = new Date()
+      // Note: In JS months starts at zero, so April is 3, not 4.
+      return now.getMonth() === 3 && now.getDate() === 9
+    }
+    function removeCSS() {
+      for (var style in styles = document.styleSheets) {
+        styles[style].disabled = true;
+      }
+    }
+    var isURLNakedEnabled = window.location.search.includes('cssnaked=true')
+    var isURLNakedDisabled = window.location.search.includes('cssnaked=false')
+    var urlOff = `${window.location.origin}${window.location.pathname}?cssnaked=false`
+
+    if (!window.Cypress && !isURLNakedDisabled && (isURLNakedEnabled || isApril9())) {
+      removeCSS()
+      document.getElementById('cssNakedMsg').innerHTML = `
+        Today, April 9th, is the <a href="https://css-naked-day.github.io/">CSS Naked Day</a>!
+        <!-- TIL: Target _self overrides SPA routing behavior from UI frameworks (eg svelte, react, etc...) -->
+        You can <a href="${urlOff}" target="_self">turn it off</a>.`
+    }
+  </script>
+
+  <div id="sapper">
+    %sapper.html%
+  </div>
+
+  %sapper.scripts%
+
+  <script>
+    console.log('%c👋 Oh, hi there, web lover!', 'color:#8e66dc; font-size: 1.5em;');
+    console.log(
+      '%c✨ Like what you see? We could work together! \n🐛 Found a bug? Please, let me know by e-mail, github, etc... \n🛠 Btw, this is open-source: https://github.com/sandrina-p/portfolio_v3. \n\nLet the debug begin!',
+      'font-size: 1.2em; line-height: 1.5'
+    );
+  </script>
+</body>
+
+</html>

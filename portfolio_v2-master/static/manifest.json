@@ -1,0 +1,15 @@
+{
+	"background_color": "#424043",
+	"theme_color": "#9f76ff",
+	"name": "ouijdane.aor - ART designer ",
+	"short_name": "aor-card",
+	"display": "minimal-ui",
+	"start_url": "/",
+	"icons": [
+		{
+			"src": "favicon192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		}
+	]
+}
